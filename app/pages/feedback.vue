@@ -28,7 +28,7 @@
     </div>
 
     <!-- Geri Bildirim Formu -->
-    <form class="bg-white dark:bg-white/[0.04] p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-white/10 space-y-5" @submit.prevent="submitFeedback">
+    <form class="bg-white dark:bg-white/[0.04] p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-white/10 space-y-5" @submit.prevent="handleSubmit">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="space-y-1.5">
           <label for="fb-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Your name <span class="text-slate-400 dark:text-slate-500 font-normal">(optional)</span></label>
@@ -62,7 +62,7 @@
 import { reactive, ref } from 'vue'
 import { useConferenceData } from '../composables/useConferenceData'
 
-const { feedbacks, saveAll } = useConferenceData()
+const { submitFeedback } = useConferenceData()
 const isSubmitting = ref(false)
 const status = ref(null) // null | 'success' | 'error'
 
@@ -72,19 +72,16 @@ const form = reactive({
   message: ''
 })
 
-const submitFeedback = async () => {
+const handleSubmit = async () => {
   if (!form.message.trim()) return
   isSubmitting.value = true
   status.value = null
   try {
-    feedbacks.value.unshift({
-      id: Date.now(),
-      name: form.name || 'Anonymous Delegate',
+    await submitFeedback({
+      name: form.name,
       category: form.category,
-      message: form.message,
-      date: new Date().toLocaleDateString('tr-TR')
+      message: form.message
     })
-    await saveAll()
     status.value = 'success'
     form.name = ''
     form.category = 'General'

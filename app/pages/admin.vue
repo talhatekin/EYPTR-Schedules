@@ -247,7 +247,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import * as XLSX from 'xlsx'
 
-const { days, sessions, announcements, feedbacks, dailyReminder, refreshData, saveAll } = useConferenceData()
+const { days, sessions, announcements, feedbacks, dailyReminder, refreshData, saveAll, removeFeedback } = useConferenceData()
 
 const isAuthenticated = ref(false)
 const inputPassword = ref('')
@@ -562,7 +562,7 @@ const deleteAnnouncement = async (idx) => {
 }
 
 const deleteFeedback = async (id) => {
-  feedbacks.value = feedbacks.value.filter(f => f.id !== id)
-  await saveAll()
+  // Feedback'ler ayrı depoda; authed uç üzerinden sil (içerik kayıtları etkilenmez).
+  await removeFeedback(id)
 }
 </script>

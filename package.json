@@ -14,13 +14,14 @@
     "@iconify-json/lucide": "^1.2.114",
     "@iconify-json/simple-icons": "^1.2.87",
     "@nuxt/ui": "^4.9.0",
+    "@upstash/redis": "^1.35.4",
     "@vercel/analytics": "^2.0.1",
-    "@vercel/kv": "^3.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.16.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
+    "@types/node": "^22.10.0",
     "@vite-pwa/nuxt": "^1.1.1",
     "eslint": "^10.6.0",
     "nuxt": "^4.4.8",

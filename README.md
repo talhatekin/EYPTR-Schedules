@@ -1,64 +1,51 @@
-# Nuxt Starter Template
+# Istanbul NS 26 — Conference Dashboard
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+EYP Türkiye Istanbul 2026 5. Ulusal Oturumu için konferans dashboard'u.
+Nuxt 4 + Nuxt UI + Tailwind ile geliştirildi.
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
-
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
-
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png" width="830" height="466">
-  </picture>
-</a>
-
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t ui
-```
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
+Public sayfalar: **Feed** (duyurular ve günlük hatırlatma), **Schedule**
+(delege/official programı, canlı oturum vurgusu), **Feedback** (delege geri bildirim formu).
+`/admin` sayfası şifre korumalı yönetim panelidir (program, duyuru, hatırlatma, Excel içe/dışa aktarım).
 
 ## Setup
-
-Make sure to install the dependencies:
 
 ```bash
 pnpm install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+## Geliştirme
 
 ```bash
-pnpm dev
+pnpm dev   # http://localhost:3000
 ```
+
+## Depolama kurulumu (Vercel + Upstash Redis)
+
+Veriler Redis'te (Upstash) tutulur. İçerik `conf_data` anahtarında, delege
+feedback'leri ise `conf_feedbacks` listesinde saklanır.
+
+1. Vercel projesinde **Storage → Marketplace → Upstash** üzerinden bir **Redis**
+   veritabanı ekleyip projeye bağla. Bu, `KV_REST_API_URL` ve `KV_REST_API_TOKEN`
+   değişkenlerini otomatik ekler.
+2. **Environment Variables** altına `ADMIN_SECRET_PASSWORD` ekle (admin panel şifresi).
+   Ayarlanmazsa güvensiz varsayılan `123` kullanılır — mutlaka değiştir.
+3. Yerelde test için `.env.example`'ı `.env`'e kopyalayıp değerleri doldur.
+
+Değişken adları için `.env.example` dosyasına bak. `UPSTASH_REDIS_REST_URL` /
+`UPSTASH_REDIS_REST_TOKEN` adları da desteklenir.
+
+## Güvenlik notu
+
+`POST /api/data` (içerik kaydetme) ve `DELETE /api/feedback` (feedback silme) uçları,
+admin girişinde üretilen token ile korunur. Feedback gönderimi (`POST /api/feedback`)
+herkese açıktır ve atomik `lpush` ile eklenir; admin içeriği kaydettiğinde
+feedback'ler asla ezilmez.
 
 ## Production
 
-Build the application for production:
-
 ```bash
 pnpm build
-```
-
-Locally preview production build:
-
-```bash
 pnpm preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
-
-## Renovate integration
-
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+Deployment için [Nuxt deployment dokümanı](https://nuxt.com/docs/getting-started/deployment).
