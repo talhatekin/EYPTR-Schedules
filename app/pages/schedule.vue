@@ -10,7 +10,7 @@
       <!-- Gerçek Zamanlı Saat -->
       <div class="flex items-center gap-2 bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 px-3.5 py-2 rounded-xl self-start sm:self-auto">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 tabular-nums">Local time {{ currentTime }}</span>
+        <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 tabular-nums">Istanbul {{ currentTime }}</span>
       </div>
     </div>
 
@@ -144,9 +144,15 @@ const roles = [
   { value: 'officials', label: 'Officials', icon: 'briefcase' }
 ]
 
+// Program saatleri konferans yerine (İstanbul) göre yazılır; canlı kontrolü
+// bakan kişinin cihaz saat diliminden bağımsız olmalı. Bu yüzden "şu an"
+// her zaman Europe/Istanbul'a çevrilir (SSR/istemci farkını da ortadan kaldırır).
+const CONF_TZ = 'Europe/Istanbul'
+const nowInConfTz = (ts) => new Date(new Date(ts).toLocaleString('en-US', { timeZone: CONF_TZ }))
+
 const updateClock = () => {
   nowTimestamp.value = Date.now()
-  currentTime.value = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  currentTime.value = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: CONF_TZ })
 }
 
 function parseDateStr(dateStr) {
@@ -159,9 +165,12 @@ function parseDateStr(dateStr) {
   return new Date(cleaned).getTime() || 0
 }
 
+// Normal tire dışında en/em-dash (– —) ile girilen aralıkları da tanı.
+const DASH_RE = /[-–—]/
+
 function parseTimeToMinutes(tStr) {
   if (!tStr) return 0
-  let firstPart = String(tStr).split('-')[0].trim().replace(/\./g, ':').replace(/\s/g, '')
+  let firstPart = String(tStr).split(DASH_RE)[0].trim().replace(/\./g, ':').replace(/\s/g, '')
   if (firstPart.includes(':')) {
     const [h, m] = firstPart.split(':').map(Number)
     return (h || 0) * 60 + (m || 0)
@@ -173,7 +182,7 @@ function parseTimeToMinutes(tStr) {
 const isSessionLive = (session) => {
   if (!session.time || !selectedDayObj.value) return false
 
-  const now = new Date(nowTimestamp.value)
+  const now = nowInConfTz(nowTimestamp.value)
 
   const dayTimestamp = parseDateStr(selectedDayObj.value.date)
   if (!dayTimestamp) return false
@@ -182,7 +191,7 @@ const isSessionLive = (session) => {
   const isSameDay = now.getMonth() === dayDate.getMonth() && now.getDate() === dayDate.getDate()
   if (!isSameDay) return false
 
-  const parts = String(session.time).split('-').map(p => p.trim().replace(/\./g, ':'))
+  const parts = String(session.time).split(DASH_RE).map(p => p.trim().replace(/\./g, ':'))
   if (parts.length < 2) return false
 
   const parseToMins = (t) => {
