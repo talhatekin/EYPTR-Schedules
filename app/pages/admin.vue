@@ -14,10 +14,14 @@
           {{ isLoading ? 'Verifying...' : 'Login' }}
         </button>
       </form>
+      <p v-if="saveError" class="text-amber-600 dark:text-amber-400 text-xs font-semibold bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3">{{ saveError }}</p>
     </div>
 
     <!-- 2. ANA YÖNETİM PANELİ -->
     <div v-else class="space-y-6">
+      <p v-if="saveError" class="text-amber-800 dark:text-amber-300 text-sm font-semibold bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3.5 flex items-center gap-2">
+        <span>⚠️</span> {{ saveError }}
+      </p>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
         <div>
           <div class="flex items-center gap-2">
@@ -252,8 +256,28 @@ const { days, sessions, announcements, feedbacks, dailyReminder, refreshData, sa
 const isAuthenticated = ref(false)
 const inputPassword = ref('')
 const errorMessage = ref('')
+const saveError = ref('')
 const isLoading = ref(false)
 const activeTab = ref('schedule')
+
+// Tüm kaydetme/silme çağrılarını buradan geçir: sunucu 401 döndürürse
+// (örn. tarayıcıda eski/geçersiz bir oturum kalmışsa) sessizce başarısız
+// olmak yerine kullanıcıyı çıkışa zorlayıp görünür bir uyarı gösterir.
+const withSaveGuard = async (action) => {
+  try {
+    await action()
+    saveError.value = ''
+  } catch (err) {
+    const status = err?.statusCode || err?.response?.status
+    if (status === 401) {
+      logout()
+      saveError.value = 'Your session has expired — please log in again. Your last change was NOT saved.'
+    } else {
+      saveError.value = 'Could not save your changes. Check your connection and try again.'
+    }
+    throw err
+  }
+}
 
 const adminScheduleRole = ref('delegates')
 const selectedDayId = ref(null)
@@ -267,9 +291,21 @@ const newAnnounce = reactive({ category: '', title: '', desc: '' })
 
 onMounted(async () => {
   await refreshData()
-  if (typeof window !== 'undefined' && localStorage.getItem('eyp_secure_auth_token')) {
-    isAuthenticated.value = true
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('eyp_secure_auth_token') : null
+  if (token) {
+    try {
+      // Token'ın varlığı yetmez: sunucuda hâlâ geçerli mi diye doğrula.
+      // Doğrulamadan geçmezse eski/süresi dolmuş token'la sessizce
+      // başarısız olan kayıtlar yerine kullanıcı tekrar giriş yapmaya yönlendirilir.
+      await $fetch('/api/auth', { headers: { Authorization: `Bearer ${token}` } })
+      isAuthenticated.value = true
+    } catch {
+      logout()
+      saveError.value = 'Your session has expired. Please log in again.'
+    }
   }
+
   if (sortedDays.value.length > 0) selectedDayId.value = sortedDays.value[0].id
 })
 
@@ -401,7 +437,7 @@ const handleExcelUpload = (event) => {
         sessions.value = [...otherRoleSessions, ...newSessionsArray]
 
         if (sortedDays.value.length > 0) selectedDayId.value = sortedDays.value[0].id
-        await saveAll()
+        await withSaveGuard(saveAll)
         alert(`🚀 Harika! Yüklenen veriler başarıyla ${adminScheduleRole.value.toUpperCase()} grubuna atandı!`)
       }
     } catch (err) {
@@ -445,19 +481,19 @@ const updateSession = async () => {
       location: editSessionForm.location || 'Main Hall',
       role: adminScheduleRole.value
     }
-    await saveAll()
+    await withSaveGuard(saveAll)
     cancelEditingSession()
   }
 }
 
 const saveReminder = async () => {
-  await saveAll()
+  await withSaveGuard(saveAll)
   alert('✅ Daily reminder banner başarıyla güncellendi!')
 }
 
 const toggleReminderActive = async () => {
   dailyReminder.value.active = !dailyReminder.value.active
-  await saveAll()
+  await withSaveGuard(saveAll)
 }
 
 const checkPassword = async () => {
@@ -470,6 +506,7 @@ const checkPassword = async () => {
     })
     if (res.success) {
       isAuthenticated.value = true
+      saveError.value = ''
       if (typeof window !== 'undefined') localStorage.setItem('eyp_secure_auth_token', res.token)
     }
   } catch (err) {
@@ -482,6 +519,7 @@ const checkPassword = async () => {
 
 const logout = () => {
   isAuthenticated.value = false
+  saveError.value = ''
   if (typeof window !== 'undefined') localStorage.removeItem('eyp_secure_auth_token')
 }
 
@@ -510,7 +548,7 @@ const addNewDay = async () => {
     selectedDayId.value = newId
     newDay.label = ''
     newDay.date = ''
-    await saveAll()
+    await withSaveGuard(saveAll)
   }
 }
 
@@ -518,7 +556,7 @@ const deleteDay = async (dayId) => {
   if (confirm('Are you sure?')) {
     days.value = days.value.filter(d => d.id !== dayId)
     sessions.value = sessions.value.filter(s => s.dayId !== dayId)
-    await saveAll()
+    await withSaveGuard(saveAll)
   }
 }
 
@@ -537,13 +575,13 @@ const addSession = async () => {
     newSession.title = ''
     newSession.speaker = ''
     newSession.location = ''
-    await saveAll()
+    await withSaveGuard(saveAll)
   }
 }
 
 const deleteSession = async (sessionId) => {
   sessions.value = sessions.value.filter(s => s.id !== sessionId)
-  await saveAll()
+  await withSaveGuard(saveAll)
 }
 
 const addAnnouncement = async () => {
@@ -552,17 +590,17 @@ const addAnnouncement = async () => {
     newAnnounce.title = ''
     newAnnounce.desc = ''
     newAnnounce.category = ''
-    await saveAll()
+    await withSaveGuard(saveAll)
   }
 }
 
 const deleteAnnouncement = async (idx) => {
   announcements.value.splice(idx, 1)
-  await saveAll()
+  await withSaveGuard(saveAll)
 }
 
 const deleteFeedback = async (id) => {
   // Feedback'ler ayrı depoda; authed uç üzerinden sil (içerik kayıtları etkilenmez).
-  await removeFeedback(id)
+  await withSaveGuard(() => removeFeedback(id))
 }
 </script>
