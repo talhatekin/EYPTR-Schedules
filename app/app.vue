@@ -9,8 +9,8 @@ import { useConferenceData } from "./composables/useConferenceData";
 
 // SOSYAL MEDYA VE SEO AYARLARI
 useSeoMeta({
-  title: "ISTANBUL 2026 | 5th National Session of EYP Türkiye",
-  ogTitle: "ISTANBUL 2026 | 5th National Session of EYP Türkiye",
+  title: "TRAINING WEEKEND 2026 OF EYP TÜRKİYE",
+  ogTitle: "TRAINING WEEKEND 2026 OF EYP TÜRKİYE",
   description:
     "Welcome to the official digital dashboard for Istanbul 2026. Live feed, dynamic schedule, and delegate services.",
   ogDescription:
